@@ -4,9 +4,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Random;
 
 import muncher.Inventory.Item;
+
+import com.google.gson.Gson;
 
 public class Command {
 
@@ -228,34 +235,34 @@ public class Command {
 			return;
 		}
 
-		
+
 		Thread termThread = new Thread(
-			new Runnable() {
-				public void run() {
-					Thread t = new Thread(
-							new Runnable() {
-								public void run() {
-									Util.runProcess("python pymath.py");
+				new Runnable() {
+					public void run() {
+						Thread t = new Thread(
+								new Runnable() {
+									public void run() {
+										Util.runProcess("python pymath.py");
+									}
 								}
-							}
-						);
+								);
 						t.start();
-					try {
-						Thread.sleep(10000);
-					} catch (Exception e) {}
-					if (t.isAlive()) {
-						t.interrupt();
-						System.out.println("-- Terminated --");
+						try {
+							Thread.sleep(10000);
+						} catch (Exception e) {}
+						if (t.isAlive()) {
+							t.interrupt();
+							System.out.println("-- Terminated --");
+						}
 					}
 				}
-			}
-		);
-		
+				);
+
 		termThread.start();
 	}
-	
-	
-	
+
+
+
 	public static void pyimp(String imp) {
 		if (imp.contains("os")) {
 			return;
@@ -274,24 +281,109 @@ public class Command {
 
 	public static void alarm(final String string) {
 		Thread t = new Thread(
-			new Runnable() {
-				public void run() {
-					String user = CommandHandler._user;
-					int time = Integer.parseInt(string);
-					try {
-						Thread.sleep(time * 1000);
-					} catch (Exception e) {
-						e.printStackTrace();
+				new Runnable() {
+					public void run() {
+						String user = CommandHandler._user;
+						int time = Integer.parseInt(string);
+						try {
+							Thread.sleep(time * 1000);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						py("print(\"" + user + ", time to MOOOOOVE!\")");
 					}
-					py("print(\"" + user + ", time to MOOOOOVE!\")");
 				}
-			}
-		);
+				);
 		t.start();
 	}
 
 	public static void MCSay(String bundleStrings) {
 		Omnom.MCServer.write("say " + bundleStrings);
 	}
-	
+
+	public static void merge(String string1, String string2) {
+		byte[] data1 = string1.getBytes();
+		byte[] data2 = string2.getBytes();
+
+		byte[] c = getLarger(data1, data2);
+		byte[] d = getSmaller(data1, data2);
+		byte[] result = new byte[c.length];
+		for (int i = 0; i < c.length; i++) {
+			byte returnByte = 0x00;
+			if (i < d.length) {
+				returnByte = (byte)(c[i] | d[i]);
+			} else returnByte = c[i];
+			result[i] = returnByte;
+		}
+		CommandHandler.send(new String(result));
+	}
+
+	private static byte[] getSmaller(byte[] a, byte[] b) {
+		return a.length > b.length ? b : a;
+	}
+
+	private static byte[] getLarger(byte[] a, byte[] b) {
+		return a.length > b.length ? a : b;
+	}
+
+	public static void jumble(String str1) {
+		byte[] arr = str1.getBytes();
+		Random r = new Random();
+		for(int i = arr.length-1; i > 0; i--){
+			int rand = r.nextInt(i);
+			byte temp = arr[i];
+			arr[i] = arr[rand];
+			arr[rand] = temp;
+		}
+		CommandHandler.send(new String(arr));
+	}
+
+	public static void tries(String str1, String str2) {
+		byte[] arr = str1.getBytes();
+		Random r = new Random();
+		long l = 0;
+		while (!new String(arr).equals(str2)) {
+			if (l > 100000L) {
+				CommandHandler.send("Took over 100,000 tries.");
+				return;
+			}
+			for(int i = arr.length-1; i > 0; i--){
+				int rand = r.nextInt(i);
+				byte temp = arr[i];
+				arr[i] = arr[rand];
+				arr[rand] = temp;
+			}
+			l++;
+		}
+		CommandHandler.send(new String("Took " + l + " tries."));
+	}
+
+	public static void search(String str1) {
+		String google = "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&q=";
+		String search = str1;
+		String charset = "UTF-8";
+
+		try {
+			URL url = new URL(google + URLEncoder.encode(search, charset));
+
+			Reader reader = new InputStreamReader(url.openStream(), charset);
+			GoogleResults results = new Gson().fromJson(reader, GoogleResults.class);
+
+			// Show title of 1st result.
+			String msg = "";
+			int limit = results.getResponseData().getResults().size();
+			if (limit > 25) limit = 25;
+			for (int i = 0; i < limit; i++) {
+				if (i < results.getResponseData().getResults().size() - 1) {
+					msg = msg.concat(results.getResponseData().getResults().get(i).getTitle() + " || ");
+				} else {
+					msg = msg.concat(results.getResponseData().getResults().get(i).getTitle());
+				}
+			}
+			CommandHandler.send(msg);
+		} catch (IOException ioe) {
+			CommandHandler.send("Failed :c");
+			ioe.printStackTrace();
+		}
+	}
 }

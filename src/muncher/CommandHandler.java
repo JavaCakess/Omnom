@@ -98,6 +98,26 @@ public class CommandHandler {
 				Command.MCSay(IOTools.bundleStrings(args, 1, args.length));
 			}
 			break;
+		case "merge":
+			if (args.length > 2) {
+				Command.merge(args[1], args[2]);
+			}
+			break;
+		case "jumble":
+			if (args.length > 1) {
+				Command.jumble(args[1]);
+			}
+			break;
+		case "tries":
+			if (args.length > 2) {
+				Command.tries(args[1], args[2]);
+			}
+			break;
+		case "search":
+			if (args.length > 1) {
+				Command.search(args[1]);
+			}
+			break;
 		}
 	}
 	

@@ -60,7 +60,7 @@ public class CommandHandler {
 			 * Python math!
 			 */
 			if (args.length > 1) {
-				Command.pmath(IOTools.bundleStrings(args, 1, args.length));
+				Command.pmath(IOTools2.bundleStrings(args, 1, args.length));
 			}
 			break;
 		case "py":
@@ -68,7 +68,7 @@ public class CommandHandler {
 			 * Run python scripts.
 			 */
 			if (args.length > 1) {
-				Command.py(IOTools.bundleStrings(args, 1, args.length));
+				Command.py(IOTools2.bundleStrings(args, 1, args.length));
 			}
 			break;
 		case "log":
@@ -82,7 +82,7 @@ public class CommandHandler {
 			 * Import python stuffz.
 			 */
 			if (args.length > 1) {
-				Command.pyimp(IOTools.bundleStrings(args, 1, args.length));
+				Command.pyimp(IOTools2.bundleStrings(args, 1, args.length));
 			}
 			break;
 		case "alarm":
@@ -95,12 +95,14 @@ public class CommandHandler {
 			break;
 		case "mcsay":
 			if (args.length > 1) {
-				Command.MCSay(IOTools.bundleStrings(args, 1, args.length));
+				Command.MCSay(IOTools2.bundleStrings(args, 1, args.length));
 			}
 			break;
 		case "merge":
-			if (args.length > 2) {
-				Command.merge(args[1], args[2]);
+			if (args.length == 3) {
+				Command.merge("-n", args[1], args[2]);
+			} else if (args.length == 4) {
+				Command.merge(args[1], args[2], args[3]);
 			}
 			break;
 		case "jumble":
@@ -117,6 +119,39 @@ public class CommandHandler {
 			if (args.length > 1) {
 				Command.search(args[1]);
 			}
+			break;
+		case "lda":
+			if (args.length > 1) {
+				Command.lda(args[1]);
+			}
+			break;
+		case "sta":
+			if (args.length > 1) {
+				Command.sta(args[1]);
+			}
+			break;
+		case "prn":
+			if (args.length > 1) {
+				Command.prn(args[1]);
+			}
+			break;
+		case "asm":
+			if (args.length > 1) {
+				Command.asm(args[1]);
+			}
+			break;
+		case "edit":
+			if (args.length > 1) {
+				Command.edit(args[1]);
+			}
+			break;
+		case "readprog":
+			if (args.length > 1) {
+				Command.readProgram(args[1]);
+			}
+			break;
+		case "gooby":
+			send("dolan");
 			break;
 		}
 	}

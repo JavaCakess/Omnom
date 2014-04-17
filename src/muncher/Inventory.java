@@ -89,7 +89,7 @@ public class Inventory {
 	public Inventory(String username) {
 		this.username = username;
 		ArrayList<String> data = 
-				IOTools.readFile(new File("data/inventories/" + CommandHandler._user + ".txt"));
+				IOTools2.readFile(new File("data/inventories/" + CommandHandler._user + ".txt"));
 		
 		for (int i = 0; i < data.get(0).split(",").length; i++) {
 			items[i] = Integer.parseInt(data.get(0).split(",")[i]);
@@ -151,6 +151,6 @@ public class Inventory {
 		}
 		ArrayList<String> data = new ArrayList<String>();
 		data.add(n);
-		IOTools.writeToFile(new File("data/inventories/" + username + ".txt"), data);
+		IOTools2.writeToFile(new File("data/inventories/" + username + ".txt"), data);
 	}
 }

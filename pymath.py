@@ -1,2 +1,2 @@
 import math;
-def kek(): 
+print(9000 ** 9000) 

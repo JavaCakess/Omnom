@@ -10,11 +10,20 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Stack;
 
 import muncher.Inventory.Item;
 
 import com.google.gson.Gson;
 
+
+/**
+ * ASM OPCODES:
+ * LDA [data] - 0x00 - Load Data to A
+ * STA [addr] - 0x01 - Store Data from A
+ * PRN [addr] - 0x02 - Print Memory Address
+ * RTN [    ] - 0x03 - Stop executing code (return)
+ */
 public class Command {
 
 	static String trade_personBeingAsked = null;
@@ -24,9 +33,14 @@ public class Command {
 	static Item titem1_trade = null;
 	static Item titem2_trade = null;
 
+	static byte[] memory = new byte[512];
+	static byte[] ram    = new byte[512];
+	static byte a, x, y;
+	static Stack<Byte> stack = new Stack<Byte>();
+
 	public static void inv() {
 		ArrayList<String> data = 
-				IOTools.readFile(new File("data/inventories/" + CommandHandler._user + ".txt"));
+				IOTools2.readFile(new File("data/inventories/" + CommandHandler._user + ".txt"));
 
 		String[] inv = data.get(0).split(",");
 
@@ -173,6 +187,16 @@ public class Command {
 				" Use !om accept to accept or !om deny to deny.");
 	}
 
+	public static void deny() {
+		if (CommandHandler._user.equalsIgnoreCase(trade_personBeingAsked)) {
+			trade_personBeingAsked = null;
+			trade_personAsking = null;
+			CommandHandler.send("Trade denied.");
+		}
+
+
+	}
+
 	public static void accept() {
 		if (CommandHandler._user.equalsIgnoreCase(trade_personBeingAsked)) {
 			Inventory user1 = new Inventory(trade_personAsking);
@@ -189,16 +213,6 @@ public class Command {
 			trade_personBeingAsked = null;
 			trade_personAsking = null;
 		}
-
-	}
-
-	public static void deny() {
-		if (CommandHandler._user.equalsIgnoreCase(trade_personBeingAsked)) {
-			trade_personBeingAsked = null;
-			trade_personAsking = null;
-			CommandHandler.send("Trade denied.");
-		}
-
 
 	}
 
@@ -223,7 +237,7 @@ public class Command {
 		FileInputStream fis = null;
 		try {
 			fos = new FileOutputStream("pymath.py");
-			ArrayList<String> imports = IOTools.readFile(new File("pyimp.txt"));
+			ArrayList<String> imports = IOTools2.readFile(new File("pyimp.txt"));
 			for (String v : imports) {
 				fos.write((v + "\n").getBytes());
 			}
@@ -301,7 +315,7 @@ public class Command {
 		Omnom.MCServer.write("say " + bundleStrings);
 	}
 
-	public static void merge(String string1, String string2) {
+	public static void merge(String mode, String string1, String string2) {
 		byte[] data1 = string1.getBytes();
 		byte[] data2 = string2.getBytes();
 
@@ -312,6 +326,11 @@ public class Command {
 			byte returnByte = 0x00;
 			if (i < d.length) {
 				returnByte = (byte)(c[i] | d[i]);
+				if (mode.equals("-n")) {
+					if ((returnByte < 0x61 || returnByte > 0x7A) && isAlphabetical(c[i])) {
+						returnByte = (byte) (0x61 + (returnByte % 26));
+					}
+				}
 			} else returnByte = c[i];
 			result[i] = returnByte;
 		}
@@ -367,7 +386,7 @@ public class Command {
 			URL url = new URL(google + URLEncoder.encode(search, charset));
 
 			Reader reader = new InputStreamReader(url.openStream(), charset);
-			GoogleResults results = new Gson().fromJson(reader, GoogleResults.class);
+			GoogResults results = new Gson().fromJson(reader, GoogResults.class);
 
 			// Show title of 1st result.
 			String msg = "";
@@ -384,6 +403,233 @@ public class Command {
 		} catch (IOException ioe) {
 			CommandHandler.send("Failed :c");
 			ioe.printStackTrace();
+		}
+	}
+
+	private static boolean isAlphabetical(byte i) {
+		byte j = (byte)(i & 0xFF);
+		if (j >= 0x61 && j <= 0x7A) {
+			return true;
+		}
+		return false;
+	}
+
+	public static void sta(String str1) {
+		if (str1.startsWith("$")) {
+			int i = Integer.parseInt(str1.substring(1), 16);
+			if (i < 0x00 || i > 0x1FF) {
+				System.out.println(i);
+				CommandHandler.send("Invalid address. (" + Integer.toHexString(i).toUpperCase() + ")");
+				return;
+			}
+			ram[i] = a;
+		}
+	}
+
+	public static void lda(String str1) {
+		byte val = 0x00;
+		if (str1.startsWith("$")) {
+			int i = Integer.parseInt(str1.substring(1), 16);
+			if (i < 0x00 || i > 0x1FF) {
+				CommandHandler.send("Invalid address.");
+				return;
+			}
+			val = ram[i];
+		} else {
+			val = Byte.parseByte(str1);
+		}
+		a = val;
+	}
+
+	public static void prn(String str1) {
+		if (str1.startsWith("$")) {
+			int i = Integer.parseInt(str1.substring(1));
+			if (i < 0x00 || i > 0x1FF) {
+				CommandHandler.send("Invalid address.");
+				return;
+			}
+			CommandHandler.send("At address $" + Integer.toHexString(i).toUpperCase() + ": " + Integer.toHexString(ram[i] & 0xFF).toUpperCase());
+		}
+	}
+
+	public static void pha() {
+		if (stack.size() == 16) { CommandHandler.send("Stack is full."); return; }
+		stack.push(a);
+	}
+
+	public static void pla() {
+		a = stack.pop();
+	}
+
+	public static void asm(String str1) {
+		if (str1.startsWith("$")) {
+			int i = Integer.parseInt(str1.substring(1), 16);
+			if (i < 0x00 || i > 0x1FF) {
+				CommandHandler.send("Invalid address.");
+				return;
+			}
+			int index = i;
+			n: while (index < 0x200) { // As long as we don't hit a return...
+				System.out.println("$" + Integer.toString(index, 16).toUpperCase() + ":" + Integer.toString(memory[index], 16).toUpperCase());
+				int mem_addr = 0x00;
+				// Run the opcodes.
+				switch (memory[index]) {
+				case 0x00: // LDA Opcode
+					lda(""+memory[index + 1]);
+					index += 2;
+					break;
+				case 0x01: // STA Opcode
+					mem_addr = (memory[index + 1] << 8);
+					System.out.println(mem_addr);
+					mem_addr = mem_addr | memory[index + 2];
+					System.out.println(mem_addr);
+					sta("$"+mem_addr);
+					index += 3;
+					break;
+				case 0x02: // PRN Opcode
+					mem_addr = (memory[index + 1] << 8);
+					System.out.println(mem_addr);
+					mem_addr = mem_addr | memory[index + 2];
+					System.out.println(mem_addr);
+					prn("$"+mem_addr);
+					index += 3;
+					break;
+				case 0x03:
+					break n;
+				}
+			}
+		}
+	}
+
+	public static void edit(String addr) {
+		String[] args = CommandHandler._args;
+		int address = 0x00;
+		if (addr.startsWith("$")) {
+			address = Integer.parseInt(addr.substring(1), 16);
+			if (address < 0x00 || address > 0x1FF) {
+				CommandHandler.send("Invalid address.");
+				return;
+			}
+		}
+		int index = address;
+		for (int i = 2; i < args.length; i++) {
+			int baddr;
+			String v = args[i].trim().toLowerCase();
+			if (v.equals("lda")) {
+				memory[index] = 0x00;
+				byte value = (byte) (Integer.parseInt(args[i + 1], 16));
+				memory[index + 1] = value;
+				i++;
+				index+=2;
+			}
+			if (v.equals("sta")) {
+				memory[index] = 0x01;
+				baddr = Integer.parseInt(args[i + 1].substring(1), 16);
+				memory[index + 1] = (byte) (baddr >> 8);
+				memory[index + 2] = (byte) (baddr & 0xFF);
+				i++;
+				index+=3;
+				System.out.println(i + "   " + index);
+			}
+			if (v.equals("prn")) {
+				System.out.println("ll");
+				memory[index] = 0x02;
+				baddr = Integer.parseInt(args[i + 1].substring(1), 16);
+				memory[index + 1] = (byte) (baddr & 0xFF00);
+				memory[index + 2] = (byte) (baddr & 0xFF);
+				i++;
+				index+=3;
+			}
+			if (v.equals("rtn")) {
+				System.out.println("lolfag");
+				memory[index] = 0x03;
+				i++;
+				index++;
+			}
+		}
+	}
+
+	public static void readProgram(String str1) {
+		if (str1.startsWith("$")) {
+			int i = Integer.parseInt(str1.substring(1), 16);
+			if (i < 0x00 || i > 0x1FF) {
+				CommandHandler.send("Invalid address.");
+				return;
+			}
+			String s = "";
+			int temp;
+			int index = i;
+			int bytes = 0;
+			String tempString = null;
+			n: while (index < 0x200) { // As long as we don't hit a return...
+				System.out.println("$" + Integer.toString(index, 16).toUpperCase() + ":" + Integer.toString(memory[index], 16).toUpperCase());
+				int mem_addr = 0x00;
+				// Run the opcodes.
+				switch (memory[index]) {
+				case 0x00: // LDA Opcode
+					tempString = "LDA " + byt(memory[index + 1]) + " ";
+					s = s.concat(tempString);
+					index+=2;
+					bytes+=2;
+					break;
+				case 0x01: // STA Opcode
+					tempString = "STA $" + byt(memory[index + 1]) + byt(memory[index + 2]) + " ";
+					s = s.concat(tempString);
+					index+=3;
+					bytes+=3;
+					System.out.println("Address: $" + index + ": " + byt(memory[index]));
+					break;
+				case 0x02: // PRN Opcode
+					tempString = "PRN $" + byt(memory[index + 1]) + byt(memory[index + 2]) + " ";
+					s = s.concat(tempString);
+					index+=3;
+					bytes+=3;
+					break;
+				case 0x03: //RTN Opcode
+					tempString = "RTN";
+					s = s.concat(tempString);
+					temp = s.length();
+					CommandHandler.send(s);
+					s = "";
+					try {
+						Thread.sleep(500);
+					} catch (Exception ioe) {
+
+					}
+					bytes+=1;
+					temp = 0;
+					break n;
+				}
+				temp = s.length();
+				if (temp >= 50) {
+					CommandHandler.send(s);
+					s = "";
+					try {
+						Thread.sleep(500);
+					} catch (Exception ioe) {
+
+					}
+					temp = 0;
+				}
+			}
+			if (s.length() < 50) {
+				CommandHandler.send(s);
+			}
+			CommandHandler.send("Total Program Size: " + byt((byte) ((byte)bytes>>8)) + "" + byt((byte) ((byte)bytes&0xFF)) + " bytes");
+			try { Thread.sleep(450); } catch (Exception e) {}
+		}
+	}
+
+	public static String byt(byte b) {
+		String result = "";
+		int c = b;
+		if ((c & 0xFF) < 0x10) result = "0";
+		result = result + (Integer.toHexString(c & 0xFF)).toUpperCase();
+		return result;
+	}
+	
+	public static void chickdex(String mode, String s) {
+		if (mode.equals("name")) {
 		}
 	}
 }

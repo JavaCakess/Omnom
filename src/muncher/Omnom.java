@@ -29,9 +29,9 @@ public class Omnom {
 						String command = input("] ");
 
 						if (command.split(" ")[0].equals("say")) {
-							CommandHandler.send(IOTools.bundleStrings(command.split(" "), 1, command.split(" ").length));
+							CommandHandler.send(IOTools2.bundleStrings(command.split(" "), 1, command.split(" ").length));
 						} else if (command.split(" ")[0].equals("pm")) {
-							send(command.split(" ")[1], IOTools.bundleStrings(command.split(" "), 2, command.split(" ").length));
+							send(command.split(" ")[1], IOTools2.bundleStrings(command.split(" "), 2, command.split(" ").length));
 						}
 					}
 				}
@@ -44,8 +44,7 @@ public class Omnom {
 		channel = input("] Specify a channel. (e.g. #pootis)");
 
 		try {
-			MCServer = new MinecraftServer();
-			MCServer.start();
+			
 			/*
 			 * Connect the socket to the server, port 6667.
 			 */
@@ -59,7 +58,8 @@ public class Omnom {
 			writer = new BufferedWriter(
 					new OutputStreamWriter(socket.getOutputStream())
 					);
-
+//			MCServer = new MinecraftServer();
+//			MCServer.start();
 			/*
 			 * Next, we give the server our nick.
 			 */

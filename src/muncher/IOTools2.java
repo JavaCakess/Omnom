@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.Scanner;
 
-public class IOTools {
+public class IOTools2 {
 
 	public final static long ONE_SECOND = 1000;
 	public final static long SECONDS = 60;
@@ -194,14 +194,6 @@ public class IOTools {
 		return str;
 	}
 
-	public static String bundleString(String[] args, int start) {
-		String result = "";
-		for (int i = start; i < args.length; i++) {
-			result = result.concat(args[i] + " ");
-		}
-		return result;
-	}
-	
 	public static String[] listToArray(ArrayList<String> s) {
 		String[] result = new String[s.size()];
 		for (int i = 0; i < result.length; i++) {
